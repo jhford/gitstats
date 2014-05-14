@@ -89,7 +89,7 @@ def print_stats_csv(all_commits, data, filename):
     with open(filename, 'w') as f:
         writer = csv.writer(f)
         writer.writerow(['Email', 'Commits', 'Insertions', 'Deletions', 'Average Files Changed'])
-        for user in data.keys():
+        for user in sorted(data.keys()):
             line = [
                 user,
                 data[user]['commits'],
