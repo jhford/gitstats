@@ -72,12 +72,8 @@ def stats_for_user(all_commits, email):
     return data
 
 
-def stats(all_commits, users='*'):
-    if users == '*':
-        print 'Finding all users'
-        users = find_users(all_commits)
-    else:
-        print 'Finding commits for %d users' % len(users)
+def stats(all_commits, users):
+    print 'Finding commits for %d users' % len(users)
     print 'Found %d users' % len(users)
     data = {}
     for user in users:
@@ -187,10 +183,9 @@ if __name__ == '__main__':
     elif opts.user:
         user_list = [opts.user]
     else:
-        user_list = '*'
+        user_list = find_users(all_commits)
+
     data = stats(all_commits, users=user_list)
-
-
 
     print_stats_csv(all_commits, data, 'output.csv')
 
