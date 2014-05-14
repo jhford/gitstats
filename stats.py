@@ -7,12 +7,9 @@ import csv
 import copy
 
 
-def build_email_directory(repo, after, before):
+def build_email_directory(all_commits):
     users = {}
     heads = repo.heads
-    iter_opts = {}
-    if before: iter_opts['before'] = before
-    if after: iter_opts['after'] = after
     def add(actor):
         if users.has_key(actor.email):
             if not actor.name in users[actor.email]:
@@ -20,19 +17,16 @@ def build_email_directory(repo, after, before):
         else:
             users[actor.email] = [actor.name]
 
-    for commit in repo.head.commit.iter_parents(**iter_opts):
+    for commit in all_commits:
         add(commit.author)
         add(commit.committer)
     return users
 
 
-def find_users(repo, after, before):
+def find_users(all_commits):
     users = []
     heads = repo.heads
-    iter_opts = {}
-    if before: iter_opts['before'] = before
-    if after: iter_opts['after'] = after
-    for commit in repo.head.commit.iter_parents(**iter_opts):
+    for commit in all_commits:
         if not commit.author.email in users:
             users.append(commit.author.email)
         if not commit.committer.email in users:
@@ -40,16 +34,13 @@ def find_users(repo, after, before):
     return users
 
 
-def find_commits(repo, email, after, before):
+def find_commits(all_commits, email):
     relevant_commits = {
         'author': [],
         'committer_not_author': [],
     }
-    iter_opts = {}
-    if before: iter_opts['before'] = before
-    if after: iter_opts['after'] = after
     # Find interesting commits
-    for commit in repo.head.commit.iter_parents(**iter_opts):
+    for commit in all_commits:
         # We don't want to count merge commits because the person
         # who merges the code is irrelevant here and might double
         # count the stats
@@ -63,14 +54,14 @@ def find_commits(repo, email, after, before):
     return relevant_commits
 
 
-def stats_for_user(repo, email, after, before):
+def stats_for_user(all_commits, email):
     data = {
         'insertions': 0,
         'deletions': 0,
         'commits': 0,
     }
     files_touched = 0
-    commits = find_commits(repo, email, after, before)
+    commits = find_commits(all_commits, email)
     for commit in commits['author']:
         data['insertions'] += commit.stats.total['insertions']
         data['deletions'] += commit.stats.total['deletions']
@@ -81,21 +72,21 @@ def stats_for_user(repo, email, after, before):
     return data
 
 
-def stats(repo, users='*', after=None, before=None):
+def stats(all_commits, users='*'):
     if users == '*':
         print 'Finding all users'
-        users = find_users(repo, after, before)
+        users = find_users(all_commits)
     else:
         print 'Finding commits for %d users' % len(users)
     print 'Found %d users' % len(users)
     data = {}
     for user in users:
         print 'Finding stats for %s' % user
-        data[user] = stats_for_user(repo, user, after, before)
+        data[user] = stats_for_user(all_commits, user)
         print 'Found stats for %d commits authored by %s' % (data[user]['commits'], user)
     return data
 
-def print_stats_csv(repo, data, filename, after, before):
+def print_stats_csv(all_commits, data, filename):
     with open(filename, 'w') as f:
         writer = csv.writer(f)
         writer.writerow(['Email', 'Commits', 'Insertions', 'Deletions', 'Average Files Changed'])
@@ -160,15 +151,22 @@ if __name__ == '__main__':
                        help='build a directory of emails to names used')
     opts, args = parser.parse_args()
 
+    all_commits = []
     for arg in args:
         if not os.path.exists(arg):
             print 'The specified repository "%s" does not exist' % opts.repo
             parser.exit(1)
         repo = git.Repo(arg, odbt=git.GitCmdObjectDB)
         assert repo.bare == False
+        iter_opts = {}
+        if opts.before: iter_opts['before'] = opts.before
+        if opts.after: iter_opts['after'] = opts.after
+        for commit in repo.head.commit.iter_parents(**iter_opts):
+            all_commits.append(commit)
+
 
     if opts.build_user_dir:
-        users = build_email_directory(repo, opts.after, opts.before)
+        users = build_email_directory(all_commits)
         print json.dumps(users, indent=2)
         parser.exit(0)
 
@@ -186,14 +184,13 @@ if __name__ == '__main__':
         except:
             print 'Malformed user list json'
             parser.exit(1)
-        data = stats(repo, users=user_list, after=opts.after, before=opts.before)
     elif opts.user:
         user_list = [opts.user]
     else:
         user_list = '*'
-    data = stats(repo, users=user_list, after=opts.after, before=opts.before)
+    data = stats(all_commits, users=user_list)
 
 
 
-    print_stats_csv(repo, data, 'output.csv', opts.after, opts.before)
+    print_stats_csv(all_commits, data, 'output.csv')
 
