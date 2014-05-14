@@ -98,14 +98,17 @@ def print_stats_csv(all_commits, data, filename):
                 data[user]['average_files']
             ]
             writer.writerow(line)
-        totals = total_stats(data)
-        writer.writerow([
-            'TOTAL',
-            totals['commits'],
-            totals['insertions'],
-            totals['deletions'],
-            totals['average_files']
-        ])
+        try:
+            totals = total_stats(data)
+            writer.writerow([
+                'TOTAL',
+                totals['commits'],
+                totals['insertions'],
+                totals['deletions'],
+                totals['average_files']
+            ])
+        except:
+            pass
 
 
 def add_users(userA, userB):
