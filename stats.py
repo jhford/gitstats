@@ -3,6 +3,8 @@ import re
 import git
 import optparse
 import os
+import csv
+import copy
 
 
 def build_email_directory(repo, after, before):
@@ -93,27 +95,58 @@ def stats(repo, users='*', after=None, before=None):
         print 'Found stats for %d commits authored by %s' % (data[user]['commits'], user)
     return data
 
-def print_stats_csv(data, filename):
-    # Basic CSV writer
+def print_stats_csv(repo, data, filename, after, before):
     with open(filename, 'w') as f:
-        f.write('email,commits,insertions,deletions,avg_file\n')
+        writer = csv.writer(f)
+        writer.writerow(['Email', 'Commits', 'Insertions', 'Deletions', 'Average Files Changed'])
         for user in data.keys():
-            line = (
+            line = [
                 user,
                 data[user]['commits'],
                 data[user]['insertions'],
                 data[user]['deletions'],
                 data[user]['average_files']
-            )
-            f.write('%s,%d,%d,%d,%.2f\n' % line)
+            ]
+            writer.writerow(line)
+        totals = total_stats(data)
+        writer.writerow([
+            'TOTAL',
+            totals['commits'],
+            totals['insertions'],
+            totals['deletions'],
+            totals['average_files']
+        ])
 
 
+def add_users(userA, userB):
+    r = {}
+    for i in ('commits', 'insertions', 'deletions', 'average_files'):
+        r[i] = userA[i] + userB[i]
+    r['average_files'] = ((userA['commits'] * userA['average_files']) + (userB['commits'] * userB['average_files'])) / (userA['commits'] + userB['commits'])
+    return r
+
+def total_stats(stats):
+    totals = {
+        'insertions': 0,
+        'deletions': 0,
+        'commits': 0,
+        'average_files': 0
+    }
+    for user in stats.keys():
+        totals = add_users(totals, stats[user])
+    return totals
+
+def add_stats(statsA, statsB):
+    result = copy.deepcopy(statsA)
+    for keyB in statsB.keys():
+        if result.has_key(keyB):
+            results[keyB] = add_users(statsA[keyB], statsB[keyB])
+        else:
+            result[keyB] = statsB[keyB]
 
 
 if __name__ == '__main__':
     parser = optparse.OptionParser('Get statistics for a git repository')
-    parser.add_option('-R', '--repo', dest='repo', default='gaia',
-                      help='path to a git repository')
     parser.add_option('--since', '--after', dest='after', default=None,
                       help='string to pass on to git\'s --after param')
     parser.add_option('--until', '--before', dest='before', default=None,
@@ -127,11 +160,12 @@ if __name__ == '__main__':
                        help='build a directory of emails to names used')
     opts, args = parser.parse_args()
 
-    if not os.path.exists(opts.repo):
-        print 'The specified repository "%s" does not exist' % opts.repo
-        parser.exit(1)
-    repo = git.Repo(opts.repo, odbt=git.GitCmdObjectDB)
-    assert repo.bare == False
+    for arg in args:
+        if not os.path.exists(arg):
+            print 'The specified repository "%s" does not exist' % opts.repo
+            parser.exit(1)
+        repo = git.Repo(arg, odbt=git.GitCmdObjectDB)
+        assert repo.bare == False
 
     if opts.build_user_dir:
         users = build_email_directory(repo, opts.after, opts.before)
@@ -154,9 +188,12 @@ if __name__ == '__main__':
             parser.exit(1)
         data = stats(repo, users=user_list, after=opts.after, before=opts.before)
     elif opts.user:
-        data = stats(repo, users=[opts.user], after=opts.after, before=opts.before)
+        user_list = [opts.user]
     else:
-        data = stats(repo, after=opts.after, before=opts.before)
+        user_list = '*'
+    data = stats(repo, users=user_list, after=opts.after, before=opts.before)
 
-    print_stats_csv(data, 'output')
+
+
+    print_stats_csv(repo, data, 'output.csv', opts.after, opts.before)
 
