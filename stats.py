@@ -5,6 +5,7 @@ import optparse
 import os
 import csv
 import copy
+import time
 
 
 def build_email_directory(all_commits):
@@ -187,5 +188,5 @@ if __name__ == '__main__':
 
     data = stats(all_commits, users=user_list)
 
-    print_stats_csv(all_commits, data, 'output.csv')
+    print_stats_csv(all_commits, data, 'output_' + time.strftime('%Y-%M-%d_%H-%m-%S', time.localtime()) +'.csv')
 
