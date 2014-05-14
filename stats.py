@@ -70,6 +70,8 @@ def stats_for_user(all_commits, email):
         files_touched += commit.stats.total['files']
     if data['commits'] > 0:
         data['average_files'] = files_touched / data['commits']
+    else:
+        data['average_files'] = 0
     return data
 
 
@@ -110,7 +112,11 @@ def add_users(userA, userB):
     r = {}
     for i in ('commits', 'insertions', 'deletions', 'average_files'):
         r[i] = userA[i] + userB[i]
-    r['average_files'] = ((userA['commits'] * userA['average_files']) + (userB['commits'] * userB['average_files'])) / (userA['commits'] + userB['commits'])
+    
+    if userA['commits'] + userB['commits'] == 0:
+        r['average_files'] = 0
+    else:
+        r['average_files'] = ((userA['commits'] * userA['average_files']) + (userB['commits'] * userB['average_files'])) / (userA['commits'] + userB['commits'])
     return r
 
 def total_stats(stats):
