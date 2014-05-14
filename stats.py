@@ -20,7 +20,7 @@ def build_email_directory(repo, after, before):
         else:
             users[actor.email] = [actor.name]
 
-    for commit in repo.heads.master.commit.iter_parents(**iter_opts):
+    for commit in repo.head.commit.iter_parents(**iter_opts):
         add(commit.author)
         add(commit.committer)
     return users
@@ -32,7 +32,7 @@ def find_users(repo, after, before):
     iter_opts = {}
     if before: iter_opts['before'] = before
     if after: iter_opts['after'] = after
-    for commit in repo.heads.master.commit.iter_parents(**iter_opts):
+    for commit in repo.head.commit.iter_parents(**iter_opts):
         if not commit.author.email in users:
             users.append(commit.author.email)
         if not commit.committer.email in users:
@@ -49,7 +49,7 @@ def find_commits(repo, email, after, before):
     if before: iter_opts['before'] = before
     if after: iter_opts['after'] = after
     # Find interesting commits
-    for commit in repo.heads.master.commit.iter_parents(**iter_opts):
+    for commit in repo.head.commit.iter_parents(**iter_opts):
         # We don't want to count merge commits because the person
         # who merges the code is irrelevant here and might double
         # count the stats
