@@ -197,5 +197,5 @@ if __name__ == '__main__':
 
     data = stats(all_commits, users=user_list)
 
-    print_stats_csv(all_commits, data, 'output_' + time.strftime('%Y-%M-%d_%H-%m-%S', time.localtime()) +'.csv')
+    print_stats_csv(all_commits, data, 'output_' + time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) +'.csv')
 
