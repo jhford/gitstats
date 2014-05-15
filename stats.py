@@ -10,7 +10,6 @@ import time
 
 def build_email_directory(all_commits):
     users = {}
-    heads = repo.heads
     def add(actor):
         if users.has_key(actor.email):
             if not actor.name in users[actor.email]:
@@ -170,10 +169,12 @@ if __name__ == '__main__':
         for commit in repo.head.commit.iter_parents(**iter_opts):
             all_commits.append(commit)
 
+    base_output = 'output_' + time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())
 
     if opts.build_user_dir:
         users = build_email_directory(all_commits)
-        print json.dumps(users, indent=2)
+        with open('user_dir.json', 'w') as f:
+            json.dump(users, f, indent=2)
         parser.exit(0)
 
     if opts.user and opts.user_file:
